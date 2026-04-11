@@ -1,4 +1,4 @@
-package com.tylerlam.expense_tracker.category;
+package com.tylerlam.expensetracker.category;
 
 import java.util.List;
 
@@ -12,5 +12,5 @@ public class CategoryController {
     public List<String> getCategories() {
         return List.of("Food", "Rent", "Utilities");
     }
-    
+
 }
