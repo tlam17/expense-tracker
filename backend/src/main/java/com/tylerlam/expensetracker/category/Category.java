@@ -43,11 +43,11 @@ public class Category {
     private String name;
 
     @Column(
-        name = "budget_limit", 
+        name = "default_budget", 
         precision = 19, 
         scale = 2
     )
-    private BigDecimal budgetLimit;
+    private BigDecimal defaultBudget;
 
     @CreationTimestamp
     @Column(
