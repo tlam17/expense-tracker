@@ -20,6 +20,7 @@
 | `name` | String | e.g. Food, Rent, Transport |
 | `budgetLimit` | BigDecimal | Nullable — not all categories need a limit |
 | `createdAt` | LocalDateTime | Auto-set on creation |
+| `updatedAt` | LocalDateTime | Auto-set on update |
 
 ---
 
