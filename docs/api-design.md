@@ -18,9 +18,21 @@
 |---|---|---|
 | `id` | Long | Auto-generated |
 | `name` | String | e.g. Food, Rent, Transport |
-| `budgetLimit` | BigDecimal | Nullable — not all categories need a limit |
+| `budgetLimit` | BigDecimal | Nullable — used as a default when no monthly Budget row exists |
 | `createdAt` | LocalDateTime | Auto-set on creation |
 | `updatedAt` | LocalDateTime | Auto-set on update |
+
+### Budget
+| Field | Type | Notes |
+|---|---|---|
+| `id` | Long | Auto-generated |
+| `categoryId` | Long | FK to Category |
+| `month` | String | ISO-8601 year-month, e.g. `"2026-04"` — stored as `VARCHAR(7)` |
+| `amount` | BigDecimal | Allocation for that month |
+| `createdAt` | LocalDateTime | Auto-set on creation |
+| `updatedAt` | LocalDateTime | Auto-set on update |
+
+> **Note:** A unique constraint on `(categoryId, month)` ensures one budget allocation per category per month.
 
 ---
 
@@ -33,7 +45,7 @@
 | `GET` | `/api/categories` | List all categories |
 | `POST` | `/api/categories` | Create a category |
 | `GET` | `/api/categories/{id}` | Get a single category |
-| `PUT` | `/api/categories/{id}` | Update name or budget limit |
+| `PUT` | `/api/categories/{id}` | Update name or default budget limit |
 | `DELETE` | `/api/categories/{id}` | Delete a category |
 
 > **Note:** `DELETE /api/categories/{id}` returns `409 Conflict` if any expenses reference that category.
@@ -71,12 +83,29 @@ Parameters can be combined, e.g. `?month=2026-04&categoryId=3&page=0&size=20`.
 }
 ```
 
+### Budgets — `/api/budgets`
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/budgets` | List budget allocations (filterable by month) |
+| `POST` | `/api/budgets` | Create a budget allocation |
+| `GET` | `/api/budgets/{id}` | Get a single budget allocation |
+| `PUT` | `/api/budgets/{id}` | Update a budget allocation |
+| `DELETE` | `/api/budgets/{id}` | Remove a budget allocation |
+
+#### Query Parameters for `GET /api/budgets`
+
+| Param | Example | Description |
+|---|---|---|
+| `month` | `?month=2026-04` | Filter by month |
+| `categoryId` | `?categoryId=3` | Filter by category |
+
 ### Reports — `/api/reports`
 
 | Method | Path | Description |
 |---|---|---|
 | `GET` | `/api/reports/monthly` | Total spent for a month, broken down by category |
-| `GET` | `/api/reports/budget` | Spent vs. budget limit per category for a month |
+| `GET` | `/api/reports/budget` | Spent vs. budget allocation per category for a month |
 
 Both endpoints accept `?month=2026-04` as a required query parameter.
 
@@ -102,6 +131,15 @@ Both endpoints accept `?month=2026-04` as a required query parameter.
 }
 ```
 
+### `POST /api/budgets`
+```json
+{
+  "categoryId": 2,
+  "month": "2026-04",
+  "amount": 500.00
+}
+```
+
 ### `GET /api/reports/monthly?month=2026-04`
 ```json
 {
@@ -120,7 +158,7 @@ Both endpoints accept `?month=2026-04` as a required query parameter.
 {
   "month": "2026-04",
   "budgets": [
-    { "category": "Food", "budgetLimit": 400.00, "spent": 320.00, "remaining": 80.00 },
+    { "category": "Food", "budgetLimit": 500.00, "spent": 320.00, "remaining": 180.00 },
     { "category": "Rent", "budgetLimit": 1000.00, "spent": 1000.00, "remaining": 0.00 },
     { "category": "Transport", "budgetLimit": null, "spent": 20.00, "remaining": null }
   ]
@@ -135,6 +173,8 @@ Both endpoints accept `?month=2026-04` as a required query parameter.
 - **Date format:** `LocalDate` / ISO-8601 (`yyyy-MM-dd`) for expense dates. No time component needed.
 - **Category deletion:** Blocked with `409 Conflict` if expenses reference the category.
 - **Missing `categoryId`:** Returns `404 Not Found` with a descriptive message if the category doesn't exist when creating an expense.
-- **Reports:** Read-only (`GET` only). Fully derived from expense data — no separate storage.
+- **Reports:** Read-only (`GET` only). Fully derived from expense and budget data — no separate storage.
 - **Categories:** Fully user-managed. No pre-seeded defaults.
+- **Budget resolution:** `GET /api/reports/budget` resolves the allocation for a given month by first looking for a `Budget` row for that `(categoryId, month)` pair. If none exists, it falls back to `Category.budgetLimit`. If neither is set, `budgetLimit` and `remaining` are `null`.
+- **`Category.budgetLimit`:** Retained as a default/fallback. Rename to `defaultBudget` in a future cleanup if the intent becomes confusing.
 - **Auth:** JWT authentication to be added after core functionality is complete, securing all `/api/**` endpoints.
