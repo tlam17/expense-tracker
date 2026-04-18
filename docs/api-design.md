@@ -10,8 +10,8 @@
 | `date` | LocalDate | ISO-8601 format (yyyy-MM-dd) |
 | `description` | String | Optional notes |
 | `categoryId` | Long | FK to Category |
-| `createdAt` | LocalDateTime | Auto-set on creation |
-| `updatedAt` | LocalDateTime | Auto-set on update |
+| `createdAt` | Instant | Auto-set on creation |
+| `updatedAt` | Instant | Auto-set on update |
 
 ### Category
 | Field | Type | Notes |
@@ -19,18 +19,18 @@
 | `id` | Long | Auto-generated |
 | `name` | String | e.g. Food, Rent, Transport |
 | `budgetLimit` | BigDecimal | Nullable — used as a default when no monthly Budget row exists |
-| `createdAt` | LocalDateTime | Auto-set on creation |
-| `updatedAt` | LocalDateTime | Auto-set on update |
+| `createdAt` | Instant | Auto-set on creation |
+| `updatedAt` | Instant | Auto-set on update |
 
 ### Budget
 | Field | Type | Notes |
 |---|---|---|
 | `id` | Long | Auto-generated |
 | `categoryId` | Long | FK to Category |
-| `month` | String | ISO-8601 year-month, e.g. `"2026-04"` — stored as `VARCHAR(7)` |
+| `month` | YearMonth | Stored as `VARCHAR(7)` via `AttributeConverter` — e.g. `"2026-04"` |
 | `amount` | BigDecimal | Allocation for that month |
-| `createdAt` | LocalDateTime | Auto-set on creation |
-| `updatedAt` | LocalDateTime | Auto-set on update |
+| `createdAt` | Instant | Auto-set on creation |
+| `updatedAt` | Instant | Auto-set on update |
 
 > **Note:** A unique constraint on `(categoryId, month)` ensures one budget allocation per category per month.
 
