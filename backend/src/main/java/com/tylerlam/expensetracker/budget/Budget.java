@@ -19,6 +19,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.AllArgsConstructor;
@@ -45,7 +46,13 @@ import lombok.Setter;
 public class Budget {
     @Id
     @GeneratedValue(
-        strategy = GenerationType.SEQUENCE
+        strategy = GenerationType.SEQUENCE,
+        generator = "budgets_id_seq"
+    )
+    @SequenceGenerator(
+        name = "budgets_id_seq",
+        sequenceName = "budgets_id_seq",
+        allocationSize = 1
     )
     @Column(
         updatable = false, 
