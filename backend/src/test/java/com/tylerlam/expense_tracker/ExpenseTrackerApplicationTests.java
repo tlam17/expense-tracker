@@ -1,4 +1,4 @@
-package com.tylerlam.expense_tracker;
+package com.tylerlam.expensetracker;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
