@@ -38,6 +38,9 @@ jobs:
             retries=$((retries + 1))
             sleep 3
           done
+
+          # Create the test database
+          docker exec expense-tracker-postgres psql -U $POSTGRES_USER -c "CREATE DATABASE expense_tracker_test;"
         env:
           POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
