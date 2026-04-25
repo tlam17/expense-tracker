@@ -40,7 +40,7 @@ jobs:
           done
 
           # Create the test database
-          docker exec -e PGPASSWORD=$POSTGRES_PASSWORD expense-tracker-postgres psql -U $POSTGRES_USER -c "CREATE DATABASE expense_tracker_test;"
+          docker exec -e PGPASSWORD=$POSTGRES_PASSWORD expense-tracker-postgres psql -U $POSTGRES_USER -d postgres -c "CREATE DATABASE expense_tracker_test;"
         env:
           POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
