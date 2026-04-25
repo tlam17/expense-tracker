@@ -1,0 +1,50 @@
+name: CI
+ 
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+ 
+jobs:
+  test:
+    runs-on: ubuntu-latest
+ 
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v5
+        with:
+            java-version: '21'
+            distribution: 'temurin'
+            cache: 'maven'
+      
+      - name: Start PostgreSQL
+        run: |
+          docker compose -f docker-compose.yaml up -d postgres
+          max_retries=30
+          retries=0
+          until [ "$(docker inspect -f '{{.State.Health.Status}}' expense-tracker-postgres)" = "healthy" ]; do
+            if [ "$retries" -ge "$max_retries" ]; then
+              echo "PostgreSQL failed to become healthy after $max_retries attempts"
+              exit 1
+            fi
+            echo "Waiting for PostgreSQL to be healthy... ($retries/$max_retries)"
+            retries=$((retries + 1))
+            sleep 3
+          done
+        env:
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+      
+      - name: Run tests
+        run: ./mvnw verify
+        env:
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        
+      
