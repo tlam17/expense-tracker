@@ -6,6 +6,8 @@ import org.springframework.stereotype.Service;
 
 import com.tylerlam.expensetracker.category.dto.CategoryRequest;
 import com.tylerlam.expensetracker.category.dto.CategoryResponse;
+import com.tylerlam.expensetracker.expense.ExpenseRepository;
+import com.tylerlam.expensetracker.shared.exception.CategoryInUseException;
 import com.tylerlam.expensetracker.shared.exception.ResourceNotFoundException;
 
 import lombok.RequiredArgsConstructor;
@@ -15,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 public class CategoryService {
 
     private final CategoryRepository categoryRepository;
+    private final ExpenseRepository expenseRepository;
 
     // Get all categories
     public List<CategoryResponse> getAllCategories() {
@@ -61,6 +64,11 @@ public class CategoryService {
     public void deleteCategory(Long id) {
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + id));
+        
+        // Check if category is associated with any expenses before deleting
+        if (expenseRepository.existsByCategoryId(id)) {
+            throw new CategoryInUseException("Cannot delete category with id " + id + " because it is associated with existing expenses.");
+        }
 
         categoryRepository.delete(category);
     }
