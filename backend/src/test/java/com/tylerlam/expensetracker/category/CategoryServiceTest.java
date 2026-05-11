@@ -13,6 +13,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.tylerlam.expensetracker.category.dto.CategoryRequest;
 import com.tylerlam.expensetracker.category.dto.CategoryResponse;
+import com.tylerlam.expensetracker.expense.ExpenseRepository;
 import com.tylerlam.expensetracker.shared.exception.ResourceNotFoundException;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -27,6 +28,9 @@ public class CategoryServiceTest {
 
     @Mock
     private CategoryRepository categoryRepository;
+
+    @Mock
+    private ExpenseRepository expenseRepository;
 
     @InjectMocks
     private CategoryService categoryService;
@@ -168,6 +172,7 @@ public class CategoryServiceTest {
     public void deleteCategory_deletesCategory_whenFound() {
         Category category = buildCategory(1L, "Food", new BigDecimal("500.00"));
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
+        when(expenseRepository.existsByCategoryId(1L)).thenReturn(false);
 
         categoryService.deleteCategory(1L);
 
