@@ -231,9 +231,45 @@ public class BudgetRepositoryTest {
         Budget saved = savedBudget(food, APR_2026, new BigDecimal("500.00"));
         budgetRepository.deleteById(saved.getId());
         budgetRepository.flush();
- 
+
         Budget reinserted = savedBudget(food, APR_2026, new BigDecimal("600.00"));
- 
+
         assertThat(reinserted.getId()).isNotNull();
+    }
+
+    // ── ExistsByMonthAndCategoryId ────────────────────────────────────────────
+
+    @Test
+    void existsByMonthAndCategoryId_returnsTrue_whenBudgetExists() {
+        savedBudget(food, APR_2026, new BigDecimal("500.00"));
+
+        Boolean exists = budgetRepository.existsByMonthAndCategoryId(APR_2026, food.getId());
+
+        assertThat(exists).isTrue();
+    }
+
+    @Test
+    void existsByMonthAndCategoryId_returnsFalse_whenMonthDoesNotMatch() {
+        savedBudget(food, APR_2026, new BigDecimal("500.00"));
+
+        Boolean exists = budgetRepository.existsByMonthAndCategoryId(MAY_2026, food.getId());
+
+        assertThat(exists).isFalse();
+    }
+
+    @Test
+    void existsByMonthAndCategoryId_returnsFalse_whenCategoryDoesNotMatch() {
+        savedBudget(food, APR_2026, new BigDecimal("500.00"));
+
+        Boolean exists = budgetRepository.existsByMonthAndCategoryId(APR_2026, rent.getId());
+
+        assertThat(exists).isFalse();
+    }
+
+    @Test
+    void existsByMonthAndCategoryId_returnsFalse_whenNoBudgetsExist() {
+        Boolean exists = budgetRepository.existsByMonthAndCategoryId(APR_2026, food.getId());
+
+        assertThat(exists).isFalse();
     }
 }
