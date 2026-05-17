@@ -2,6 +2,7 @@ package com.tylerlam.expensetracker.expense;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -20,6 +21,7 @@ import com.tylerlam.expensetracker.shared.exception.ResourceNotFoundException;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
@@ -71,13 +73,13 @@ public class ExpenseControllerTest {
     // --- GET /api/expenses ---
 
     @Test
-    public void getExpenses_returns200WithExpenses() throws Exception {
+    public void getExpenses_returns200WithNoFilters() throws Exception {
         CategoryResponse category = buildCategoryResponse(1L, "Food", new BigDecimal("500.00"));
         List<ExpenseResponse> expenses = List.of(
                 buildResponse(1L, new BigDecimal("25.00"), LocalDate.of(2024, 1, 10), "Lunch", category),
                 buildResponse(2L, new BigDecimal("100.00"), LocalDate.of(2024, 1, 11), "Groceries", category)
         );
-        when(expenseService.getAllExpenses()).thenReturn(expenses);
+        when(expenseService.getAllExpenses(isNull(), isNull())).thenReturn(expenses);
 
         mockMvc.perform(get("/api/expenses"))
                 .andExpect(status().isOk())
@@ -93,11 +95,63 @@ public class ExpenseControllerTest {
 
     @Test
     public void getExpenses_returns200WithEmptyList() throws Exception {
-        when(expenseService.getAllExpenses()).thenReturn(List.of());
+        when(expenseService.getAllExpenses(isNull(), isNull())).thenReturn(List.of());
 
         mockMvc.perform(get("/api/expenses"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    public void getExpenses_returns200WithMonthFilter() throws Exception {
+        CategoryResponse category = buildCategoryResponse(1L, "Food", new BigDecimal("500.00"));
+        List<ExpenseResponse> expenses = List.of(
+                buildResponse(1L, new BigDecimal("25.00"), LocalDate.of(2024, 1, 10), "Lunch", category)
+        );
+        when(expenseService.getAllExpenses(eq(YearMonth.of(2024, 1)), isNull())).thenReturn(expenses);
+
+        mockMvc.perform(get("/api/expenses").param("month", "2024-01"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(1));
+    }
+
+    @Test
+    public void getExpenses_returns200WithCategoryFilter() throws Exception {
+        CategoryResponse category = buildCategoryResponse(1L, "Food", new BigDecimal("500.00"));
+        List<ExpenseResponse> expenses = List.of(
+                buildResponse(1L, new BigDecimal("25.00"), LocalDate.of(2024, 1, 10), "Lunch", category)
+        );
+        when(expenseService.getAllExpenses(isNull(), eq(1L))).thenReturn(expenses);
+
+        mockMvc.perform(get("/api/expenses").param("categoryId", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].category.id").value(1));
+    }
+
+    @Test
+    public void getExpenses_returns200WithMonthAndCategoryFilter() throws Exception {
+        CategoryResponse category = buildCategoryResponse(1L, "Food", new BigDecimal("500.00"));
+        List<ExpenseResponse> expenses = List.of(
+                buildResponse(1L, new BigDecimal("25.00"), LocalDate.of(2024, 1, 10), "Lunch", category)
+        );
+        when(expenseService.getAllExpenses(eq(YearMonth.of(2024, 1)), eq(1L))).thenReturn(expenses);
+
+        mockMvc.perform(get("/api/expenses")
+                        .param("month", "2024-01")
+                        .param("categoryId", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(1));
+    }
+
+    @Test
+    public void getExpenses_returns400WhenMonthIsInvalidFormat() throws Exception {
+        mockMvc.perform(get("/api/expenses").param("month", "invalid"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.message").value("Invalid parameter type"));
     }
 
     // --- GET /api/expenses/{id} ---

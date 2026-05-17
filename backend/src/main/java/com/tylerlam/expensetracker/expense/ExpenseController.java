@@ -1,5 +1,6 @@
 package com.tylerlam.expensetracker.expense;
 
+import java.time.YearMonth;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.tylerlam.expensetracker.expense.dto.ExpenseRequest;
@@ -28,8 +30,8 @@ public class ExpenseController {
 
     // GET /api/expenses - Get all expenses (add pagination and filtering later)
     @GetMapping()
-    public ResponseEntity<List<ExpenseResponse>> getExpenses() {
-        List<ExpenseResponse> responses = expenseService.getAllExpenses();
+    public ResponseEntity<List<ExpenseResponse>> getExpenses(@RequestParam(required = false) YearMonth month, @RequestParam(required = false) Long categoryId) {
+        List<ExpenseResponse> responses = expenseService.getAllExpenses(month, categoryId);
         return ResponseEntity.status(HttpStatus.OK).body(responses);
     }
 
