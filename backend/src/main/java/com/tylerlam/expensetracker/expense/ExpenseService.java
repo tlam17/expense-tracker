@@ -1,7 +1,9 @@
 package com.tylerlam.expensetracker.expense;
 
+import java.time.YearMonth;
 import java.util.List;
 
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import com.tylerlam.expensetracker.category.Category;
@@ -20,9 +22,20 @@ public class ExpenseService {
     private final ExpenseRepository expenseRepository;
     private final CategoryRepository categoryRepository;
 
-    // Get all expenses (add pagination and filtering later)
-    public List<ExpenseResponse> getAllExpenses() {
-        List<Expense> expenses = expenseRepository.findAll();
+    // Get all expenses (add pagination)
+    public List<ExpenseResponse> getAllExpenses(YearMonth month, Long categoryId) {
+        List<Expense> expenses;
+        Specification<Expense> spec = (root, query, cb) -> null;
+
+        if (month != null) {
+                spec = spec.and(ExpenseSpecifications.hasMonth(month));
+        }
+        if (categoryId != null) {
+                spec = spec.and(ExpenseSpecifications.hasCategoryId(categoryId));
+        }
+
+        expenses = expenseRepository.findAll(spec);
+
         return expenses.stream()
                 .map(this::toResponse)
                 .toList();

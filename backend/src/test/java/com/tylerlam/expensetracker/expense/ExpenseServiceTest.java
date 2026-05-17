@@ -2,6 +2,7 @@ package com.tylerlam.expensetracker.expense;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
 
@@ -11,6 +12,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.jpa.domain.Specification;
 
 import com.tylerlam.expensetracker.category.Category;
 import com.tylerlam.expensetracker.category.CategoryRepository;
@@ -67,15 +69,15 @@ public class ExpenseServiceTest {
     // --- getAllExpenses ---
 
     @Test
-    public void getAllExpenses_returnsAllExpenses() {
+    public void getAllExpenses_withNoFilters_returnsAllExpenses() {
         Category category = buildCategory(1L, "Food", new BigDecimal("500.00"));
         List<Expense> expenses = List.of(
                 buildExpense(1L, new BigDecimal("25.00"), LocalDate.of(2024, 1, 10), "Lunch", category),
                 buildExpense(2L, new BigDecimal("100.00"), LocalDate.of(2024, 1, 11), "Groceries", category)
         );
-        when(expenseRepository.findAll()).thenReturn(expenses);
+        when(expenseRepository.findAll(any(Specification.class))).thenReturn(expenses);
 
-        List<ExpenseResponse> result = expenseService.getAllExpenses();
+        List<ExpenseResponse> result = expenseService.getAllExpenses(null, null);
 
         assertThat(result).hasSize(2);
         assertThat(result.get(0).getId()).isEqualTo(1L);
@@ -88,12 +90,55 @@ public class ExpenseServiceTest {
     }
 
     @Test
-    public void getAllExpenses_returnsEmptyListWhenNoneExist() {
-        when(expenseRepository.findAll()).thenReturn(List.of());
+    public void getAllExpenses_withNoFilters_returnsEmptyListWhenNoneExist() {
+        when(expenseRepository.findAll(any(Specification.class))).thenReturn(List.of());
 
-        List<ExpenseResponse> result = expenseService.getAllExpenses();
+        List<ExpenseResponse> result = expenseService.getAllExpenses(null, null);
 
         assertThat(result).isEmpty();
+    }
+
+    @Test
+    public void getAllExpenses_withMonthFilter_returnsFilteredExpenses() {
+        Category category = buildCategory(1L, "Food", new BigDecimal("500.00"));
+        List<Expense> expenses = List.of(
+                buildExpense(1L, new BigDecimal("25.00"), LocalDate.of(2024, 1, 10), "Lunch", category)
+        );
+        when(expenseRepository.findAll(any(Specification.class))).thenReturn(expenses);
+
+        List<ExpenseResponse> result = expenseService.getAllExpenses(YearMonth.of(2024, 1), null);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getDate()).isEqualTo(LocalDate.of(2024, 1, 10));
+    }
+
+    @Test
+    public void getAllExpenses_withCategoryFilter_returnsFilteredExpenses() {
+        Category category = buildCategory(1L, "Food", new BigDecimal("500.00"));
+        List<Expense> expenses = List.of(
+                buildExpense(1L, new BigDecimal("25.00"), LocalDate.of(2024, 1, 10), "Lunch", category)
+        );
+        when(expenseRepository.findAll(any(Specification.class))).thenReturn(expenses);
+
+        List<ExpenseResponse> result = expenseService.getAllExpenses(null, 1L);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getCategory().getId()).isEqualTo(1L);
+    }
+
+    @Test
+    public void getAllExpenses_withMonthAndCategoryFilter_returnsFilteredExpenses() {
+        Category category = buildCategory(1L, "Food", new BigDecimal("500.00"));
+        List<Expense> expenses = List.of(
+                buildExpense(1L, new BigDecimal("25.00"), LocalDate.of(2024, 1, 10), "Lunch", category)
+        );
+        when(expenseRepository.findAll(any(Specification.class))).thenReturn(expenses);
+
+        List<ExpenseResponse> result = expenseService.getAllExpenses(YearMonth.of(2024, 1), 1L);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getDate()).isEqualTo(LocalDate.of(2024, 1, 10));
+        assertThat(result.get(0).getCategory().getId()).isEqualTo(1L);
     }
 
     // --- getExpenseById ---
