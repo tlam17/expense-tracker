@@ -49,7 +49,7 @@ public class BudgetController {
 
     // PUT /api/budgets/{id} - Update an existing budget
     @PutMapping("/{id}")
-    public ResponseEntity<BudgetResponse> updateBudget (@PathVariable Long id, @RequestBody @Valid BudgetRequest request) {
+    public ResponseEntity<BudgetResponse> updateBudget(@PathVariable Long id, @RequestBody @Valid BudgetRequest request) {
         BudgetResponse response = budgetService.updateBudget(id, request);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }

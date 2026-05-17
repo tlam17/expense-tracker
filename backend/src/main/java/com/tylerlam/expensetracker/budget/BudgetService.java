@@ -9,6 +9,7 @@ import com.tylerlam.expensetracker.budget.dto.BudgetResponse;
 import com.tylerlam.expensetracker.category.Category;
 import com.tylerlam.expensetracker.category.CategoryRepository;
 import com.tylerlam.expensetracker.category.dto.CategoryResponse;
+import com.tylerlam.expensetracker.shared.exception.DuplicateBudgetException;
 import com.tylerlam.expensetracker.shared.exception.ResourceNotFoundException;
 
 import lombok.RequiredArgsConstructor;
@@ -40,6 +41,10 @@ public class BudgetService {
         Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + request.getCategoryId()));
 
+        if (budgetRepository.existsByMonthAndCategoryId(request.getMonth(), category.getId())) {
+            throw new DuplicateBudgetException("Budget already exists for month: " + request.getMonth() + " and category id: " + category.getId());
+        }
+
         Budget budget = Budget.builder()
                 .amount(request.getAmount())
                 .month(request.getMonth())
@@ -57,6 +62,11 @@ public class BudgetService {
         
         Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + request.getCategoryId()));
+
+        Boolean isChangingMonthOrCategory = !budget.getMonth().equals(request.getMonth()) || !budget.getCategory().getId().equals(request.getCategoryId());
+        if (isChangingMonthOrCategory && budgetRepository.existsByMonthAndCategoryId(request.getMonth(), request.getCategoryId())) {
+            throw new DuplicateBudgetException("Budget already exists for month: " + request.getMonth() + " and category id: " + request.getCategoryId());
+        }
 
         budget.setMonth(request.getMonth());
         budget.setAmount(request.getAmount());
