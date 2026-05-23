@@ -22,6 +22,7 @@ import com.tylerlam.expensetracker.shared.exception.ResourceNotFoundException;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
@@ -82,7 +83,7 @@ public class BudgetControllerTest {
                 buildResponse(1L, new BigDecimal("500.00"), APR_2026, category),
                 buildResponse(2L, new BigDecimal("1000.00"), MAY_2026, category)
         );
-        when(budgetService.getAllBudgets()).thenReturn(budgets);
+        when(budgetService.getAllBudgets(isNull(), isNull())).thenReturn(budgets);
 
         mockMvc.perform(get("/api/budgets"))
                 .andExpect(status().isOk())
@@ -99,11 +100,57 @@ public class BudgetControllerTest {
 
     @Test
     public void getBudgets_returns200WithEmptyList() throws Exception {
-        when(budgetService.getAllBudgets()).thenReturn(List.of());
+        when(budgetService.getAllBudgets(isNull(), isNull())).thenReturn(List.of());
 
         mockMvc.perform(get("/api/budgets"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    public void getBudgets_returns200FilteredByMonth() throws Exception {
+        CategoryResponse category = buildCategoryResponse(1L, "Food", new BigDecimal("500.00"));
+        List<BudgetResponse> budgets = List.of(
+                buildResponse(1L, new BigDecimal("500.00"), APR_2026, category)
+        );
+        when(budgetService.getAllBudgets(eq(APR_2026), isNull())).thenReturn(budgets);
+
+        mockMvc.perform(get("/api/budgets").param("month", "2026-04"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(1))
+                .andExpect(jsonPath("$[0].month").value("2026-04"));
+    }
+
+    @Test
+    public void getBudgets_returns200FilteredByCategoryId() throws Exception {
+        CategoryResponse category = buildCategoryResponse(1L, "Food", new BigDecimal("500.00"));
+        List<BudgetResponse> budgets = List.of(
+                buildResponse(1L, new BigDecimal("500.00"), APR_2026, category),
+                buildResponse(2L, new BigDecimal("600.00"), MAY_2026, category)
+        );
+        when(budgetService.getAllBudgets(isNull(), eq(1L))).thenReturn(budgets);
+
+        mockMvc.perform(get("/api/budgets").param("categoryId", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].category.id").value(1))
+                .andExpect(jsonPath("$[1].category.id").value(1));
+    }
+
+    @Test
+    public void getBudgets_returns200FilteredByMonthAndCategoryId() throws Exception {
+        CategoryResponse category = buildCategoryResponse(1L, "Food", new BigDecimal("500.00"));
+        List<BudgetResponse> budgets = List.of(
+                buildResponse(1L, new BigDecimal("500.00"), APR_2026, category)
+        );
+        when(budgetService.getAllBudgets(eq(APR_2026), eq(1L))).thenReturn(budgets);
+
+        mockMvc.perform(get("/api/budgets").param("month", "2026-04").param("categoryId", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].month").value("2026-04"))
+                .andExpect(jsonPath("$[0].category.id").value(1));
     }
 
     // --- GET /api/budgets/{id} ---
