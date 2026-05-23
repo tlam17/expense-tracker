@@ -1,7 +1,9 @@
 package com.tylerlam.expensetracker.budget;
 
+import java.time.YearMonth;
 import java.util.List;
 
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import com.tylerlam.expensetracker.budget.dto.BudgetRequest;
@@ -22,8 +24,20 @@ public class BudgetService {
     private final CategoryRepository categoryRepository;
 
     // Get all budgets (add filtering later)
-    public List<BudgetResponse> getAllBudgets() {
-        List<Budget> budgets = budgetRepository.findAll();
+    public List<BudgetResponse> getAllBudgets(YearMonth month, Long categoryId) {
+        List<Budget> budgets;
+        Specification<Budget> spec = (root, query, cb) -> null;
+
+        if (month != null) {
+                spec = spec.and(BudgetSpecifications.hasMonth(month));
+        }
+
+        if (categoryId != null) {
+                spec = spec.and(BudgetSpecifications.hasCategoryId(categoryId));
+        }
+
+        budgets = budgetRepository.findAll(spec);
+
         return budgets.stream()                
                 .map(this::toResponse)
                 .toList();

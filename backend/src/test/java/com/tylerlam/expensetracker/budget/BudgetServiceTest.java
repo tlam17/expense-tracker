@@ -12,6 +12,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import org.springframework.data.jpa.domain.Specification;
+
 import com.tylerlam.expensetracker.budget.dto.BudgetRequest;
 import com.tylerlam.expensetracker.budget.dto.BudgetResponse;
 import com.tylerlam.expensetracker.category.Category;
@@ -76,9 +78,9 @@ public class BudgetServiceTest {
                 buildBudget(1L, new BigDecimal("500.00"), APR_2026, food),
                 buildBudget(2L, new BigDecimal("1000.00"), APR_2026, rent)
         );
-        when(budgetRepository.findAll()).thenReturn(budgets);
+        when(budgetRepository.findAll(any(Specification.class))).thenReturn(budgets);
 
-        List<BudgetResponse> result = budgetService.getAllBudgets();
+        List<BudgetResponse> result = budgetService.getAllBudgets(null, null);
 
         assertThat(result).hasSize(2);
         assertThat(result.get(0).getId()).isEqualTo(1L);
@@ -93,11 +95,55 @@ public class BudgetServiceTest {
 
     @Test
     public void getAllBudgets_returnsEmptyList_whenNoneExist() {
-        when(budgetRepository.findAll()).thenReturn(List.of());
+        when(budgetRepository.findAll(any(Specification.class))).thenReturn(List.of());
 
-        List<BudgetResponse> result = budgetService.getAllBudgets();
+        List<BudgetResponse> result = budgetService.getAllBudgets(null, null);
 
         assertThat(result).isEmpty();
+    }
+
+    @Test
+    public void getAllBudgets_filtersByMonth_whenMonthProvided() {
+        Category food = buildCategory(1L, "Food", new BigDecimal("500.00"));
+        List<Budget> budgets = List.of(buildBudget(1L, new BigDecimal("500.00"), APR_2026, food));
+        when(budgetRepository.findAll(any(Specification.class))).thenReturn(budgets);
+
+        List<BudgetResponse> result = budgetService.getAllBudgets(APR_2026, null);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getMonth()).isEqualTo(APR_2026);
+        verify(budgetRepository).findAll(any(Specification.class));
+    }
+
+    @Test
+    public void getAllBudgets_filtersByCategoryId_whenCategoryIdProvided() {
+        Category food = buildCategory(1L, "Food", new BigDecimal("500.00"));
+        List<Budget> budgets = List.of(
+                buildBudget(1L, new BigDecimal("500.00"), APR_2026, food),
+                buildBudget(2L, new BigDecimal("600.00"), MAY_2026, food)
+        );
+        when(budgetRepository.findAll(any(Specification.class))).thenReturn(budgets);
+
+        List<BudgetResponse> result = budgetService.getAllBudgets(null, 1L);
+
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).getCategory().getId()).isEqualTo(1L);
+        assertThat(result.get(1).getCategory().getId()).isEqualTo(1L);
+        verify(budgetRepository).findAll(any(Specification.class));
+    }
+
+    @Test
+    public void getAllBudgets_filtersByMonthAndCategoryId_whenBothProvided() {
+        Category food = buildCategory(1L, "Food", new BigDecimal("500.00"));
+        List<Budget> budgets = List.of(buildBudget(1L, new BigDecimal("500.00"), APR_2026, food));
+        when(budgetRepository.findAll(any(Specification.class))).thenReturn(budgets);
+
+        List<BudgetResponse> result = budgetService.getAllBudgets(APR_2026, 1L);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getMonth()).isEqualTo(APR_2026);
+        assertThat(result.get(0).getCategory().getId()).isEqualTo(1L);
+        verify(budgetRepository).findAll(any(Specification.class));
     }
 
     // --- getBudgetById ---

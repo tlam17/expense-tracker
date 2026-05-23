@@ -1,5 +1,6 @@
 package com.tylerlam.expensetracker.budget;
 
+import java.time.YearMonth;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.tylerlam.expensetracker.budget.dto.BudgetRequest;
@@ -28,8 +30,8 @@ public class BudgetController {
 
     // GET /api/budgets - Get all budgets (add filtering later)
     @GetMapping()
-    public ResponseEntity<List<BudgetResponse>> getAllBudgets() {
-        List<BudgetResponse> responses = budgetService.getAllBudgets();
+    public ResponseEntity<List<BudgetResponse>> getAllBudgets(@RequestParam(required = false) YearMonth month, @RequestParam(required = false) Long categoryId) {
+        List<BudgetResponse> responses = budgetService.getAllBudgets(month, categoryId);
         return ResponseEntity.status(HttpStatus.OK).body(responses);
     }
 
