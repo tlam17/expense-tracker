@@ -1,8 +1,9 @@
 package com.tylerlam.expensetracker.expense;
 
 import java.time.YearMonth;
-import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
@@ -11,6 +12,7 @@ import com.tylerlam.expensetracker.category.CategoryRepository;
 import com.tylerlam.expensetracker.category.dto.CategoryResponse;
 import com.tylerlam.expensetracker.expense.dto.ExpenseRequest;
 import com.tylerlam.expensetracker.expense.dto.ExpenseResponse;
+import com.tylerlam.expensetracker.shared.dto.PageResponse;
 import com.tylerlam.expensetracker.shared.exception.ResourceNotFoundException;
 
 import lombok.RequiredArgsConstructor;
@@ -22,9 +24,8 @@ public class ExpenseService {
     private final ExpenseRepository expenseRepository;
     private final CategoryRepository categoryRepository;
 
-    // Get all expenses (add pagination)
-    public List<ExpenseResponse> getAllExpenses(YearMonth month, Long categoryId) {
-        List<Expense> expenses;
+    // Get all expenses
+    public PageResponse<ExpenseResponse> getAllExpenses(YearMonth month, Long categoryId, Pageable pageable) {
         Specification<Expense> spec = (root, query, cb) -> null;
 
         if (month != null) {
@@ -34,11 +35,15 @@ public class ExpenseService {
                 spec = spec.and(ExpenseSpecifications.hasCategoryId(categoryId));
         }
 
-        expenses = expenseRepository.findAll(spec);
+        Page<ExpenseResponse> page = expenseRepository.findAll(spec, pageable).map(this::toResponse);
 
-        return expenses.stream()
-                .map(this::toResponse)
-                .toList();
+        return PageResponse.<ExpenseResponse>builder()
+                .content(page.getContent())
+                .page(page.getNumber())
+                .size(page.getSize())
+                .totalElements(page.getTotalElements())
+                .totalPages(page.getTotalPages())
+                .build();
     }
     
     // Get expense by ID

@@ -12,12 +12,17 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 
 import com.tylerlam.expensetracker.category.Category;
 import com.tylerlam.expensetracker.category.CategoryRepository;
 import com.tylerlam.expensetracker.expense.dto.ExpenseRequest;
 import com.tylerlam.expensetracker.expense.dto.ExpenseResponse;
+import com.tylerlam.expensetracker.shared.dto.PageResponse;
 import com.tylerlam.expensetracker.shared.exception.ResourceNotFoundException;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -26,6 +31,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import org.mockito.ArgumentMatchers;
 
 @ExtendWith(MockitoExtension.class)
 public class ExpenseServiceTest {
@@ -75,27 +82,36 @@ public class ExpenseServiceTest {
                 buildExpense(1L, new BigDecimal("25.00"), LocalDate.of(2024, 1, 10), "Lunch", category),
                 buildExpense(2L, new BigDecimal("100.00"), LocalDate.of(2024, 1, 11), "Groceries", category)
         );
-        when(expenseRepository.findAll(any(Specification.class))).thenReturn(expenses);
+        Pageable pageable = PageRequest.of(0, 20);
+        Page<Expense> page = new PageImpl<>(expenses, pageable, expenses.size());
+        when(expenseRepository.findAll(ArgumentMatchers.<Specification<Expense>>any(), any(Pageable.class))).thenReturn(page);
 
-        List<ExpenseResponse> result = expenseService.getAllExpenses(null, null);
+        PageResponse<ExpenseResponse> result = expenseService.getAllExpenses(null, null, pageable);
 
-        assertThat(result).hasSize(2);
-        assertThat(result.get(0).getId()).isEqualTo(1L);
-        assertThat(result.get(0).getAmount()).isEqualByComparingTo("25.00");
-        assertThat(result.get(0).getDate()).isEqualTo(LocalDate.of(2024, 1, 10));
-        assertThat(result.get(0).getDescription()).isEqualTo("Lunch");
-        assertThat(result.get(0).getCategory().getId()).isEqualTo(1L);
-        assertThat(result.get(1).getId()).isEqualTo(2L);
-        assertThat(result.get(1).getAmount()).isEqualByComparingTo("100.00");
+        assertThat(result.getContent()).hasSize(2);
+        assertThat(result.getContent().get(0).getId()).isEqualTo(1L);
+        assertThat(result.getContent().get(0).getAmount()).isEqualByComparingTo("25.00");
+        assertThat(result.getContent().get(0).getDate()).isEqualTo(LocalDate.of(2024, 1, 10));
+        assertThat(result.getContent().get(0).getDescription()).isEqualTo("Lunch");
+        assertThat(result.getContent().get(0).getCategory().getId()).isEqualTo(1L);
+        assertThat(result.getContent().get(1).getId()).isEqualTo(2L);
+        assertThat(result.getContent().get(1).getAmount()).isEqualByComparingTo("100.00");
+        assertThat(result.getPage()).isEqualTo(0);
+        assertThat(result.getSize()).isEqualTo(20);
+        assertThat(result.getTotalElements()).isEqualTo(2L);
+        assertThat(result.getTotalPages()).isEqualTo(1);
     }
 
     @Test
     public void getAllExpenses_withNoFilters_returnsEmptyListWhenNoneExist() {
-        when(expenseRepository.findAll(any(Specification.class))).thenReturn(List.of());
+        Pageable pageable = PageRequest.of(0, 20);
+        Page<Expense> page = new PageImpl<>(List.of(), pageable, 0);
+        when(expenseRepository.findAll(ArgumentMatchers.<Specification<Expense>>any(), any(Pageable.class))).thenReturn(page);
 
-        List<ExpenseResponse> result = expenseService.getAllExpenses(null, null);
+        PageResponse<ExpenseResponse> result = expenseService.getAllExpenses(null, null, pageable);
 
-        assertThat(result).isEmpty();
+        assertThat(result.getContent()).isEmpty();
+        assertThat(result.getTotalElements()).isEqualTo(0L);
     }
 
     @Test
@@ -104,12 +120,14 @@ public class ExpenseServiceTest {
         List<Expense> expenses = List.of(
                 buildExpense(1L, new BigDecimal("25.00"), LocalDate.of(2024, 1, 10), "Lunch", category)
         );
-        when(expenseRepository.findAll(any(Specification.class))).thenReturn(expenses);
+        Pageable pageable = PageRequest.of(0, 20);
+        Page<Expense> page = new PageImpl<>(expenses, pageable, expenses.size());
+        when(expenseRepository.findAll(ArgumentMatchers.<Specification<Expense>>any(), any(Pageable.class))).thenReturn(page);
 
-        List<ExpenseResponse> result = expenseService.getAllExpenses(YearMonth.of(2024, 1), null);
+        PageResponse<ExpenseResponse> result = expenseService.getAllExpenses(YearMonth.of(2024, 1), null, pageable);
 
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).getDate()).isEqualTo(LocalDate.of(2024, 1, 10));
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).getDate()).isEqualTo(LocalDate.of(2024, 1, 10));
     }
 
     @Test
@@ -118,12 +136,14 @@ public class ExpenseServiceTest {
         List<Expense> expenses = List.of(
                 buildExpense(1L, new BigDecimal("25.00"), LocalDate.of(2024, 1, 10), "Lunch", category)
         );
-        when(expenseRepository.findAll(any(Specification.class))).thenReturn(expenses);
+        Pageable pageable = PageRequest.of(0, 20);
+        Page<Expense> page = new PageImpl<>(expenses, pageable, expenses.size());
+        when(expenseRepository.findAll(ArgumentMatchers.<Specification<Expense>>any(), any(Pageable.class))).thenReturn(page);
 
-        List<ExpenseResponse> result = expenseService.getAllExpenses(null, 1L);
+        PageResponse<ExpenseResponse> result = expenseService.getAllExpenses(null, 1L, pageable);
 
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).getCategory().getId()).isEqualTo(1L);
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).getCategory().getId()).isEqualTo(1L);
     }
 
     @Test
@@ -132,13 +152,33 @@ public class ExpenseServiceTest {
         List<Expense> expenses = List.of(
                 buildExpense(1L, new BigDecimal("25.00"), LocalDate.of(2024, 1, 10), "Lunch", category)
         );
-        when(expenseRepository.findAll(any(Specification.class))).thenReturn(expenses);
+        Pageable pageable = PageRequest.of(0, 20);
+        Page<Expense> page = new PageImpl<>(expenses, pageable, expenses.size());
+        when(expenseRepository.findAll(ArgumentMatchers.<Specification<Expense>>any(), any(Pageable.class))).thenReturn(page);
 
-        List<ExpenseResponse> result = expenseService.getAllExpenses(YearMonth.of(2024, 1), 1L);
+        PageResponse<ExpenseResponse> result = expenseService.getAllExpenses(YearMonth.of(2024, 1), 1L, pageable);
 
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).getDate()).isEqualTo(LocalDate.of(2024, 1, 10));
-        assertThat(result.get(0).getCategory().getId()).isEqualTo(1L);
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).getDate()).isEqualTo(LocalDate.of(2024, 1, 10));
+        assertThat(result.getContent().get(0).getCategory().getId()).isEqualTo(1L);
+    }
+
+    @Test
+    public void getAllExpenses_returnsCorrectPageMetadata() {
+        Category category = buildCategory(1L, "Food", new BigDecimal("500.00"));
+        List<Expense> expenses = List.of(
+                buildExpense(1L, new BigDecimal("25.00"), LocalDate.of(2024, 1, 10), "Lunch", category)
+        );
+        Pageable pageable = PageRequest.of(1, 10);
+        Page<Expense> page = new PageImpl<>(expenses, pageable, 11);
+        when(expenseRepository.findAll(ArgumentMatchers.<Specification<Expense>>any(), any(Pageable.class))).thenReturn(page);
+
+        PageResponse<ExpenseResponse> result = expenseService.getAllExpenses(null, null, pageable);
+
+        assertThat(result.getPage()).isEqualTo(1);
+        assertThat(result.getSize()).isEqualTo(10);
+        assertThat(result.getTotalElements()).isEqualTo(11L);
+        assertThat(result.getTotalPages()).isEqualTo(2);
     }
 
     // --- getExpenseById ---
