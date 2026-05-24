@@ -8,6 +8,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -17,6 +18,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.tylerlam.expensetracker.category.dto.CategoryResponse;
 import com.tylerlam.expensetracker.expense.dto.ExpenseRequest;
 import com.tylerlam.expensetracker.expense.dto.ExpenseResponse;
+import com.tylerlam.expensetracker.shared.dto.PageResponse;
 import com.tylerlam.expensetracker.shared.exception.ResourceNotFoundException;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -70,6 +72,16 @@ public class ExpenseControllerTest {
         return request;
     }
 
+    private <T> PageResponse<T> buildPageResponse(List<T> content, int page, int size, long totalElements, int totalPages) {
+        return PageResponse.<T>builder()
+                .content(content)
+                .page(page)
+                .size(size)
+                .totalElements(totalElements)
+                .totalPages(totalPages)
+                .build();
+    }
+
     // --- GET /api/expenses ---
 
     @Test
@@ -79,27 +91,34 @@ public class ExpenseControllerTest {
                 buildResponse(1L, new BigDecimal("25.00"), LocalDate.of(2024, 1, 10), "Lunch", category),
                 buildResponse(2L, new BigDecimal("100.00"), LocalDate.of(2024, 1, 11), "Groceries", category)
         );
-        when(expenseService.getAllExpenses(isNull(), isNull())).thenReturn(expenses);
+        PageResponse<ExpenseResponse> pageResponse = buildPageResponse(expenses, 0, 20, 2, 1);
+        when(expenseService.getAllExpenses(isNull(), isNull(), any(Pageable.class))).thenReturn(pageResponse);
 
         mockMvc.perform(get("/api/expenses"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].id").value(1))
-                .andExpect(jsonPath("$[0].amount").value(25.00))
-                .andExpect(jsonPath("$[0].description").value("Lunch"))
-                .andExpect(jsonPath("$[0].category.id").value(1))
-                .andExpect(jsonPath("$[0].category.name").value("Food"))
-                .andExpect(jsonPath("$[1].id").value(2))
-                .andExpect(jsonPath("$[1].amount").value(100.00));
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(20))
+                .andExpect(jsonPath("$.totalElements").value(2))
+                .andExpect(jsonPath("$.totalPages").value(1))
+                .andExpect(jsonPath("$.content[0].id").value(1))
+                .andExpect(jsonPath("$.content[0].amount").value(25.00))
+                .andExpect(jsonPath("$.content[0].description").value("Lunch"))
+                .andExpect(jsonPath("$.content[0].category.id").value(1))
+                .andExpect(jsonPath("$.content[0].category.name").value("Food"))
+                .andExpect(jsonPath("$.content[1].id").value(2))
+                .andExpect(jsonPath("$.content[1].amount").value(100.00));
     }
 
     @Test
     public void getExpenses_returns200WithEmptyList() throws Exception {
-        when(expenseService.getAllExpenses(isNull(), isNull())).thenReturn(List.of());
+        PageResponse<ExpenseResponse> pageResponse = buildPageResponse(List.of(), 0, 20, 0, 0);
+        when(expenseService.getAllExpenses(isNull(), isNull(), any(Pageable.class))).thenReturn(pageResponse);
 
         mockMvc.perform(get("/api/expenses"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(0));
+                .andExpect(jsonPath("$.content.length()").value(0))
+                .andExpect(jsonPath("$.totalElements").value(0));
     }
 
     @Test
@@ -108,12 +127,13 @@ public class ExpenseControllerTest {
         List<ExpenseResponse> expenses = List.of(
                 buildResponse(1L, new BigDecimal("25.00"), LocalDate.of(2024, 1, 10), "Lunch", category)
         );
-        when(expenseService.getAllExpenses(eq(YearMonth.of(2024, 1)), isNull())).thenReturn(expenses);
+        PageResponse<ExpenseResponse> pageResponse = buildPageResponse(expenses, 0, 20, 1, 1);
+        when(expenseService.getAllExpenses(eq(YearMonth.of(2024, 1)), isNull(), any(Pageable.class))).thenReturn(pageResponse);
 
         mockMvc.perform(get("/api/expenses").param("month", "2024-01"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].id").value(1));
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].id").value(1));
     }
 
     @Test
@@ -122,12 +142,13 @@ public class ExpenseControllerTest {
         List<ExpenseResponse> expenses = List.of(
                 buildResponse(1L, new BigDecimal("25.00"), LocalDate.of(2024, 1, 10), "Lunch", category)
         );
-        when(expenseService.getAllExpenses(isNull(), eq(1L))).thenReturn(expenses);
+        PageResponse<ExpenseResponse> pageResponse = buildPageResponse(expenses, 0, 20, 1, 1);
+        when(expenseService.getAllExpenses(isNull(), eq(1L), any(Pageable.class))).thenReturn(pageResponse);
 
         mockMvc.perform(get("/api/expenses").param("categoryId", "1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].category.id").value(1));
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].category.id").value(1));
     }
 
     @Test
@@ -136,14 +157,32 @@ public class ExpenseControllerTest {
         List<ExpenseResponse> expenses = List.of(
                 buildResponse(1L, new BigDecimal("25.00"), LocalDate.of(2024, 1, 10), "Lunch", category)
         );
-        when(expenseService.getAllExpenses(eq(YearMonth.of(2024, 1)), eq(1L))).thenReturn(expenses);
+        PageResponse<ExpenseResponse> pageResponse = buildPageResponse(expenses, 0, 20, 1, 1);
+        when(expenseService.getAllExpenses(eq(YearMonth.of(2024, 1)), eq(1L), any(Pageable.class))).thenReturn(pageResponse);
 
         mockMvc.perform(get("/api/expenses")
                         .param("month", "2024-01")
                         .param("categoryId", "1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].id").value(1));
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].id").value(1));
+    }
+
+    @Test
+    public void getExpenses_returns200WithPaginationParams() throws Exception {
+        CategoryResponse category = buildCategoryResponse(1L, "Food", new BigDecimal("500.00"));
+        List<ExpenseResponse> expenses = List.of(
+                buildResponse(1L, new BigDecimal("25.00"), LocalDate.of(2024, 1, 10), "Lunch", category)
+        );
+        PageResponse<ExpenseResponse> pageResponse = buildPageResponse(expenses, 1, 10, 11, 2);
+        when(expenseService.getAllExpenses(isNull(), isNull(), any(Pageable.class))).thenReturn(pageResponse);
+
+        mockMvc.perform(get("/api/expenses").param("page", "1").param("size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.page").value(1))
+                .andExpect(jsonPath("$.size").value(10))
+                .andExpect(jsonPath("$.totalElements").value(11))
+                .andExpect(jsonPath("$.totalPages").value(2));
     }
 
     @Test

@@ -1,8 +1,10 @@
 package com.tylerlam.expensetracker.expense;
 
 import java.time.YearMonth;
-import java.util.List;
 
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.tylerlam.expensetracker.expense.dto.ExpenseRequest;
 import com.tylerlam.expensetracker.expense.dto.ExpenseResponse;
+import com.tylerlam.expensetracker.shared.dto.PageResponse;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -28,14 +31,17 @@ public class ExpenseController {
 
     private final ExpenseService expenseService;
 
-    // GET /api/expenses - Get all expenses (add pagination and filtering later)
+    // GET /api/expenses - Get all expenses
     @GetMapping()
-    public ResponseEntity<List<ExpenseResponse>> getExpenses(@RequestParam(required = false) YearMonth month, @RequestParam(required = false) Long categoryId) {
-        List<ExpenseResponse> responses = expenseService.getAllExpenses(month, categoryId);
+    public ResponseEntity<PageResponse<ExpenseResponse>> getExpenses(
+            @RequestParam(required = false) YearMonth month, 
+            @RequestParam(required = false) Long categoryId,
+            @PageableDefault(size = 20, sort = "date", direction = Sort.Direction.DESC) Pageable pageable) {
+        PageResponse<ExpenseResponse> responses = expenseService.getAllExpenses(month, categoryId, pageable);
         return ResponseEntity.status(HttpStatus.OK).body(responses);
     }
 
-    // GET /api/expenses/{id} - Get expense by ID (add later)
+    // GET /api/expenses/{id} - Get expense by ID
     @GetMapping("/{id}")
     public ResponseEntity<ExpenseResponse> getExpenseById(@PathVariable Long id) {
         ExpenseResponse response = expenseService.getExpenseById(id);
