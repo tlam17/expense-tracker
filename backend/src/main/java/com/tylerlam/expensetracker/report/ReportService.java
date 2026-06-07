@@ -7,6 +7,8 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
+import com.tylerlam.expensetracker.report.dto.BudgetReportCategoryRow;
+import com.tylerlam.expensetracker.report.dto.BudgetReportResponse;
 import com.tylerlam.expensetracker.report.dto.MonthlyReportCategoryRow;
 import com.tylerlam.expensetracker.report.dto.MonthlyReportResponse;
 
@@ -40,11 +42,40 @@ public class ReportService {
                 .build();
     }
 
+    // Get the budget report for a specific month
+    public BudgetReportResponse getBudgetReport(YearMonth month) {
+        LocalDate start = month.atDay(1);
+        LocalDate end = month.atEndOfMonth();
+
+        List<CategoryBudget> categoryBudgets = reportRepository.getBudgetReportByCategory(start, end);
+
+        List<BudgetReportCategoryRow> budgets = categoryBudgets.stream()
+                .map(this::toRow)
+                .toList();
+
+        return BudgetReportResponse.builder()
+                .month(month)
+                .budgets(budgets)
+                .build();
+    }
+
     // Helper method to convert CategorySpend to MonthlyReportCategoryRow
     private MonthlyReportCategoryRow toRow(CategorySpend categorySpend) {
         return MonthlyReportCategoryRow.builder()
                 .category(categorySpend.category())
                 .spent(categorySpend.spent())
+                .build();
+    }
+
+    // Helper method to convert CategoryBudget to BudgetReportCategoryRow
+    private BudgetReportCategoryRow toRow(CategoryBudget categoryBudget) {
+        BigDecimal remaining = categoryBudget.amount() != null ? categoryBudget.amount().subtract(categoryBudget.spent()) : null;
+
+        return BudgetReportCategoryRow.builder()
+                .category(categoryBudget.category())
+                .budgetLimit(categoryBudget.amount())
+                .spent(categoryBudget.spent())
+                .remaining(remaining)
                 .build();
     }
 }

@@ -12,6 +12,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.tylerlam.expensetracker.report.dto.BudgetReportResponse;
 import com.tylerlam.expensetracker.report.dto.MonthlyReportResponse;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -89,5 +90,67 @@ public class ReportServiceTest {
 
         assertThat(result.getTotalSpent()).isEqualByComparingTo("1150.00");
         assertThat(result.getByCategory()).hasSize(3);
+    }
+
+    // --- getBudgetReport ---
+
+    @Test
+    public void getBudgetReport_returnsReport_withMultipleCategories() {
+        List<CategoryBudget> budgets = List.of(
+                new CategoryBudget("Food", new BigDecimal("500.00"), new BigDecimal("300.00")),
+                new CategoryBudget("Transport", new BigDecimal("200.00"), new BigDecimal("150.00"))
+        );
+        when(reportRepository.getBudgetReportByCategory(any(), any())).thenReturn(budgets);
+
+        BudgetReportResponse result = reportService.getBudgetReport(MAY_2026);
+
+        assertThat(result.getMonth()).isEqualTo(MAY_2026);
+        assertThat(result.getBudgets()).hasSize(2);
+        assertThat(result.getBudgets().get(0).getCategory()).isEqualTo("Food");
+        assertThat(result.getBudgets().get(0).getBudgetLimit()).isEqualByComparingTo("500.00");
+        assertThat(result.getBudgets().get(0).getSpent()).isEqualByComparingTo("300.00");
+        assertThat(result.getBudgets().get(0).getRemaining()).isEqualByComparingTo("200.00");
+        assertThat(result.getBudgets().get(1).getCategory()).isEqualTo("Transport");
+        assertThat(result.getBudgets().get(1).getBudgetLimit()).isEqualByComparingTo("200.00");
+        assertThat(result.getBudgets().get(1).getSpent()).isEqualByComparingTo("150.00");
+        assertThat(result.getBudgets().get(1).getRemaining()).isEqualByComparingTo("50.00");
+    }
+
+    @Test
+    public void getBudgetReport_setsRemainingToNull_whenNoBudgetSet() {
+        List<CategoryBudget> budgets = List.of(
+                new CategoryBudget("Food", null, new BigDecimal("300.00"))
+        );
+        when(reportRepository.getBudgetReportByCategory(any(), any())).thenReturn(budgets);
+
+        BudgetReportResponse result = reportService.getBudgetReport(MAY_2026);
+
+        assertThat(result.getBudgets().get(0).getBudgetLimit()).isNull();
+        assertThat(result.getBudgets().get(0).getSpent()).isEqualByComparingTo("300.00");
+        assertThat(result.getBudgets().get(0).getRemaining()).isNull();
+    }
+
+    @Test
+    public void getBudgetReport_passesCorrectDateRangeToRepository() {
+        when(reportRepository.getBudgetReportByCategory(any(), any())).thenReturn(List.of());
+
+        reportService.getBudgetReport(MAY_2026);
+
+        ArgumentCaptor<LocalDate> startCaptor = ArgumentCaptor.forClass(LocalDate.class);
+        ArgumentCaptor<LocalDate> endCaptor = ArgumentCaptor.forClass(LocalDate.class);
+        verify(reportRepository).getBudgetReportByCategory(startCaptor.capture(), endCaptor.capture());
+
+        assertThat(startCaptor.getValue()).isEqualTo(LocalDate.of(2026, 5, 1));
+        assertThat(endCaptor.getValue()).isEqualTo(LocalDate.of(2026, 5, 31));
+    }
+
+    @Test
+    public void getBudgetReport_returnsEmptyList_whenNoSpends() {
+        when(reportRepository.getBudgetReportByCategory(any(), any())).thenReturn(List.of());
+
+        BudgetReportResponse result = reportService.getBudgetReport(MAY_2026);
+
+        assertThat(result.getMonth()).isEqualTo(MAY_2026);
+        assertThat(result.getBudgets()).isEmpty();
     }
 }
