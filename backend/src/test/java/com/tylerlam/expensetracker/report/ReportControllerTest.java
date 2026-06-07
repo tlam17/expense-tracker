@@ -10,6 +10,8 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.tylerlam.expensetracker.report.dto.BudgetReportCategoryRow;
+import com.tylerlam.expensetracker.report.dto.BudgetReportResponse;
 import com.tylerlam.expensetracker.report.dto.MonthlyReportCategoryRow;
 import com.tylerlam.expensetracker.report.dto.MonthlyReportResponse;
 
@@ -75,6 +77,62 @@ public class ReportControllerTest {
     @Test
     public void getMonthlyReport_returns400WhenMonthIsInvalid() throws Exception {
         mockMvc.perform(get("/api/reports/monthly").param("month", "not-a-month"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.message").value("Invalid parameter type"));
+    }
+
+    // --- GET /api/reports/budget ---
+
+    @Test
+    public void getBudgetReport_returns200WithReport() throws Exception {
+        List<BudgetReportCategoryRow> budgets = List.of(
+                BudgetReportCategoryRow.builder()
+                        .category("Food")
+                        .budgetLimit(new BigDecimal("500.00"))
+                        .spent(new BigDecimal("300.00"))
+                        .remaining(new BigDecimal("200.00"))
+                        .build(),
+                BudgetReportCategoryRow.builder()
+                        .category("Transport")
+                        .spent(new BigDecimal("150.00"))
+                        .build()
+        );
+        BudgetReportResponse response = BudgetReportResponse.builder()
+                .month(MAY_2026)
+                .budgets(budgets)
+                .build();
+        when(reportService.getBudgetReport(eq(MAY_2026))).thenReturn(response);
+
+        mockMvc.perform(get("/api/reports/budget").param("month", "2026-05"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.month").value("2026-05"))
+                .andExpect(jsonPath("$.budgets.length()").value(2))
+                .andExpect(jsonPath("$.budgets[0].category").value("Food"))
+                .andExpect(jsonPath("$.budgets[0].budgetLimit").value(500.00))
+                .andExpect(jsonPath("$.budgets[0].spent").value(300.00))
+                .andExpect(jsonPath("$.budgets[0].remaining").value(200.00))
+                .andExpect(jsonPath("$.budgets[1].category").value("Transport"))
+                .andExpect(jsonPath("$.budgets[1].spent").value(150.00));
+    }
+
+    @Test
+    public void getBudgetReport_returns200WithEmptyReport() throws Exception {
+        BudgetReportResponse response = BudgetReportResponse.builder()
+                .month(MAY_2026)
+                .budgets(List.of())
+                .build();
+        when(reportService.getBudgetReport(eq(MAY_2026))).thenReturn(response);
+
+        mockMvc.perform(get("/api/reports/budget").param("month", "2026-05"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.month").value("2026-05"))
+                .andExpect(jsonPath("$.budgets.length()").value(0));
+    }
+
+    @Test
+    public void getBudgetReport_returns400WhenMonthIsInvalid() throws Exception {
+        mockMvc.perform(get("/api/reports/budget").param("month", "not-a-month"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.message").value("Invalid parameter type"));
