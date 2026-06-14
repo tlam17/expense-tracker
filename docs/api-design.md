@@ -2,6 +2,13 @@
 
 ## Data Model
 
+### User
+| Field | Type | Notes |
+|---|---|---|
+| `id` | Long | Auto-generated |
+| `email` | String | e.g. johndoe@example.com |
+| `password` | String | BCrypt-encoded password |
+
 ### Expense
 | Field | Type | Notes |
 |---|---|---|
