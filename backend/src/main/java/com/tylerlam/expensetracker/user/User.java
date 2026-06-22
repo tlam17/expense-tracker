@@ -52,7 +52,7 @@ public class User implements UserDetails {
 
     @Column(
         nullable = false,
-        length = 255
+        length = 128
     )
     private String password;
 
