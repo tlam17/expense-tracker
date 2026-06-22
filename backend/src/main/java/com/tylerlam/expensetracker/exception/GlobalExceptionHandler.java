@@ -15,6 +15,7 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import com.tylerlam.expensetracker.shared.exception.CategoryInUseException;
 import com.tylerlam.expensetracker.shared.exception.DuplicateBudgetException;
 import com.tylerlam.expensetracker.shared.exception.ResourceNotFoundException;
+import com.tylerlam.expensetracker.shared.exception.UserAlreadyExistsException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -52,6 +53,18 @@ public class GlobalExceptionHandler {
                 .timestamp(Instant.now())
                 .build();
 
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+    }
+
+    // Handle UserAlreadyExistsException and return a structured error response
+    @ExceptionHandler(UserAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleUserAlreadyExistsException(UserAlreadyExistsException ex) {
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .status(HttpStatus.CONFLICT.value())
+                .message(ex.getMessage())
+                .timestamp(Instant.now())
+                .build();
+        
         return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
     }
 
