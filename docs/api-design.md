@@ -45,6 +45,29 @@
 
 ## Endpoints
 
+### Auth — `/api/auth`
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/api/auth/register` | Register a new user and return a JWT |
+
+#### `POST /api/auth/register`
+
+**Request body**
+
+| Field | Type | Constraints |
+|---|---|---|
+| `email` | String | Required, valid email format, max 255 chars |
+| `password` | String | Required, 12–128 chars |
+
+**Response — `200 OK`**
+
+| Field | Type | Notes |
+|---|---|---|
+| `accessToken` | String | Signed JWT for subsequent requests |
+| `user.id` | Long | Newly created user ID |
+| `user.email` | String | Registered email address |
+
 ### Categories — `/api/categories`
 
 | Method | Path | Description |
@@ -119,6 +142,25 @@ Both endpoints accept `?month=2026-04` as a required query parameter.
 ---
 
 ## Example Payloads
+
+### `POST /api/auth/register`
+**Request**
+```json
+{
+  "email": "johndoe@example.com",
+  "password": "securepassword123"
+}
+```
+**Response**
+```json
+{
+  "accessToken": "<jwt>",
+  "user": {
+    "id": 1,
+    "email": "johndoe@example.com"
+  }
+}
+```
 
 ### `POST /api/categories`
 ```json
