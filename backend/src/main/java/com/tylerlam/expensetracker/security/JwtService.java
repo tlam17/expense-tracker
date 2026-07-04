@@ -14,16 +14,19 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
-import lombok.RequiredArgsConstructor;
 
 @Service
-@RequiredArgsConstructor
 public class JwtService {
     @Value("${jwt.secret}")
     private final String secret;
 
     @Value("${jwt.expiration}")
     private final long expiration;
+
+    public JwtService(@Value("${jwt.secret}") String secret, @Value("${jwt.expiration}") long expiration) {
+        this.secret = secret;
+        this.expiration = expiration;
+    }
 
     // Generates a JWT token
     public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
